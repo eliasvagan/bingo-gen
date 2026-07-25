@@ -349,7 +349,8 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				// Beregn plassering og størrelse på rutenettet (kvadratiske celler)
 				const gridTop = subtitleBottom + 8;
 				const availableWidth = pageWidth - margin * 2;
-				const rulesAreaHeight = 35;
+				// Reserve space for the rules box (top margin + padding + text).
+				const rulesAreaHeight = 55;
 				const maxGridHeight = pageHeight - gridTop - margin - rulesAreaHeight;
 				const maxCellSize = 26;
 				const cellSize = Math.min(
@@ -391,18 +392,54 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 					}
 				}
 
-				// Regler / premier under rutenettet
-				const rulesStartY = gridTop + size * cellSize + 6;
-				doc.setFontSize(7.5);
-				doc.setTextColor(60, 60, 60);
-				doc.setFont("helvetica", "normal");
+				// Regler / premier: centered ~50% width, left-aligned copy, soft gray plate
+				if (rulesText) {
+					const rulesTopMargin = 18;
+					const rulesBoxWidth = availableWidth * 0.5;
+					const rulesPadX = 12;
+					const rulesPadY = 12;
+					const lineHeight = 3.6;
+					const blockGap = 1.6;
+					const firstBaseline = 2.9;
+					const rulesBoxLeft = margin + (availableWidth - rulesBoxWidth) / 2;
+					const rulesBoxTop = gridTop + size * cellSize + rulesTopMargin;
+					const textMaxWidth = rulesBoxWidth - rulesPadX * 2;
 
-				const ruleLines = rulesText.split(/\r?\n/).filter(l => l.trim().length > 0);
-				let currentY = rulesStartY;
-				for (const line of ruleLines) {
-					const wrapped = doc.splitTextToSize(line.trim(), availableWidth * 0.92);
-					doc.text(wrapped, margin + 4, currentY);
-					currentY += wrapped.length * 3.3 + 1.2;
+					doc.setFont("helvetica", "normal");
+					doc.setFontSize(8);
+
+					const ruleLines = rulesText.split(/\r?\n/).filter(l => l.trim().length > 0);
+					const wrappedBlocks = ruleLines.map(line =>
+						doc.splitTextToSize(line.trim(), textMaxWidth)
+					);
+					if (wrappedBlocks.length > 0) {
+						let textRun = 0;
+						wrappedBlocks.forEach((wrapped, i) => {
+							textRun += wrapped.length * lineHeight;
+							if (i < wrappedBlocks.length - 1) textRun += blockGap;
+						});
+						// Top pad + first baseline + remaining lines + bottom pad
+						const rulesBoxHeight =
+							rulesPadY + firstBaseline + (textRun - lineHeight) + rulesPadY + 1.2;
+
+						doc.setFillColor(246, 246, 246);
+						doc.roundedRect(
+							rulesBoxLeft,
+							rulesBoxTop,
+							rulesBoxWidth,
+							rulesBoxHeight,
+							2,
+							2,
+							"F"
+						);
+
+						doc.setTextColor(55, 55, 55);
+						let currentY = rulesBoxTop + rulesPadY + firstBaseline;
+						for (const wrapped of wrappedBlocks) {
+							doc.text(wrapped, rulesBoxLeft + rulesPadX, currentY, { align: "left" });
+							currentY += wrapped.length * lineHeight + blockGap;
+						}
+					}
 				}
 			}
 
