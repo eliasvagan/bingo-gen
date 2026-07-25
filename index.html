@@ -49,39 +49,98 @@
 		* { box-sizing: border-box; }
 		body {
 			font-family: Georgia, "Times New Roman", serif;
-			max-width: 52rem;
+			max-width: 72rem;
 			margin: 2rem auto;
 			padding: 0 1rem 3rem;
 			line-height: 1.5;
 			color: var(--fg);
 			background: var(--bg);
 		}
+		.page-header {
+			max-width: 42rem;
+			margin-bottom: 1.5rem;
+		}
 		h1 {
 			font-weight: 700;
 			letter-spacing: -.02em;
 			color: var(--accent);
-			margin-bottom: .5rem;
+			margin: 0 0 .5rem;
 		}
 		.lead {
-			max-width: 42rem;
 			color: var(--muted);
-			margin-top: 0;
-			margin-bottom: 1.75rem;
+			margin: 0;
+		}
+		.workspace {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+			align-items: start;
+		}
+		@media (min-width: 56rem) {
+			.workspace {
+				grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+				gap: 1.75rem;
+			}
+			.exports-panel {
+				position: sticky;
+				top: 1rem;
+				max-height: calc(100vh - 2rem);
+				overflow: auto;
+			}
 		}
 		form {
 			display: flex;
 			flex-direction: column;
-			gap: 1.25rem;
-			padding: 2rem;
+			gap: 1.5rem;
+			padding: 1.5rem;
 			border: 1px solid var(--border);
 			background: var(--surface);
 			border-radius: 8px;
 			box-shadow: var(--form-shadow);
+			min-width: 0;
 		}
-		label {
+		@media (min-width: 40rem) {
+			form { padding: 2rem; }
+		}
+		.field {
+			display: flex;
+			flex-direction: column;
+			gap: .4rem;
+		}
+		.field-label {
+			display: block;
 			font-weight: 600;
-			margin-bottom: -.25rem;
+			font-size: 1rem;
 			color: var(--accent-2);
+			line-height: 1.3;
+		}
+		.field-hint {
+			display: block;
+			margin: 0;
+			font-size: .82rem;
+			font-weight: 400;
+			line-height: 1.4;
+			color: var(--muted);
+			max-width: 40rem;
+		}
+		.field-hint code {
+			font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+			font-size: .9em;
+			padding: .05em .35em;
+			border-radius: 3px;
+			background: var(--input-bg);
+			border: 1px solid var(--border);
+			color: var(--fg);
+		}
+		.field-meta {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: baseline;
+			justify-content: space-between;
+			gap: .35rem .75rem;
+		}
+		.field-meta .field-hint {
+			text-align: right;
 		}
 		textarea,
 		input[type="number"] {
@@ -90,7 +149,7 @@
 			border: 1px solid var(--border);
 			border-radius: 6px;
 			font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
-			font-size: .95rem;
+			font-size: 16px; /* avoids iOS zoom-on-focus */
 			color: var(--fg);
 			background: var(--input-bg);
 			resize: vertical;
@@ -117,9 +176,10 @@
 		input[type="range"] {
 			width: 100%;
 			accent-color: var(--accent);
+			margin: .15rem 0 0;
 		}
-		button {
-			padding: .75rem 1.5rem;
+		button[type="submit"] {
+			padding: .85rem 1.5rem;
 			font-size: 1.05rem;
 			font-weight: 600;
 			font-family: inherit;
@@ -129,87 +189,194 @@
 			border-radius: 6px;
 			cursor: pointer;
 			transition: filter .15s, transform .05s;
+			width: 100%;
 		}
-		button:hover {
+		button[type="submit"]:hover {
 			filter: brightness(1.08);
 		}
-		button:active {
+		button[type="submit"]:active {
 			transform: translateY(1px);
 		}
-		button:focus-visible {
+		button[type="submit"]:focus-visible {
 			outline: 2px solid var(--focus);
 			outline-offset: 2px;
 		}
-		#download {
-			display: inline-block;
-			margin-top: 1rem;
-			padding: .65rem 1.25rem;
+		.exports-panel {
+			border: 1px solid var(--border);
+			background: var(--surface);
+			border-radius: 8px;
+			box-shadow: var(--form-shadow);
+			padding: 1.1rem 1.15rem 1.25rem;
+			min-width: 0;
+		}
+		.exports-panel h2 {
+			margin: 0 0 .25rem;
+			font-size: 1rem;
+			font-weight: 700;
+			color: var(--accent-2);
+			letter-spacing: .01em;
+		}
+		.exports-intro {
+			margin: 0 0 1rem;
+			font-size: .82rem;
+			color: var(--muted);
+			line-height: 1.4;
+		}
+		.exports-empty {
+			margin: 0;
+			padding: .85rem 1rem;
+			border: 1px dashed var(--border);
+			border-radius: 6px;
+			font-size: .88rem;
+			color: var(--muted);
+			background: var(--input-bg);
+		}
+		.exports-list {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			display: flex;
+			flex-direction: column;
+			gap: .75rem;
+		}
+		.export-card {
+			display: flex;
+			flex-direction: column;
+			gap: .65rem;
+			padding: .85rem .9rem;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: var(--input-bg);
+		}
+		.export-card.is-latest {
+			border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+			box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+		}
+		.export-card-title {
+			margin: 0;
+			font-size: .98rem;
+			font-weight: 700;
+			color: var(--fg);
+			line-height: 1.3;
+			word-break: break-word;
+		}
+		.export-card-meta {
+			margin: 0;
+			font-size: .78rem;
+			color: var(--muted);
+			line-height: 1.45;
+			font-variant-numeric: tabular-nums;
+		}
+		.export-card-meta span + span::before {
+			content: " · ";
+			opacity: .7;
+		}
+		.export-download {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: .55rem .9rem;
 			background: var(--surface-2);
 			color: var(--orange);
 			text-decoration: none;
 			border: 1px solid var(--border);
 			border-radius: 6px;
 			font-weight: 600;
+			font-size: .9rem;
 			transition: border-color .15s, background .15s, color .15s;
 		}
-		#download:hover {
+		.export-download:hover {
 			background: var(--surface);
 			border-color: var(--orange);
 			color: var(--fg);
 		}
-		#download:focus-visible {
+		.export-download:focus-visible {
 			outline: 2px solid var(--focus);
 			outline-offset: 2px;
+		}
+		.export-remove {
+			align-self: flex-start;
+			padding: 0;
+			border: none;
+			background: none;
+			color: var(--muted);
+			font: inherit;
+			font-size: .78rem;
+			cursor: pointer;
+			text-decoration: underline;
+			text-underline-offset: 2px;
+		}
+		.export-remove:hover {
+			color: var(--fg);
+		}
+		.export-actions {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: .5rem .75rem;
 		}
 	</style>
 </head>
 <body>
 
-	<h1>Elias sin magiske bingogenerator</h1>
-	<p class="lead">Fyll inn én mulighet per linje. Velg rutenettstørrelse og antall bord. Alt blir tilfeldig og unikt per ark – uten duplikater på samme kort.</p>
+	<header class="page-header">
+		<h1>Elias sin magiske bingogenerator</h1>
+		<p class="lead">Fyll inn én mulighet per linje. Velg rutenettstørrelse og antall bord. Alt blir tilfeldig og unikt per ark – uten duplikater på samme kort.</p>
+	</header>
 
+	<div class="workspace">
 	<form id="form">
-		<!-- 1. Overskrift (toppen av hver side) -->
-		<div>
-			<label for="headerTemplate">Overskriftsmal (bruk $n for nummer, f.eks. "Bord $n")</label>
-			<textarea id="headerTemplate" rows="1">Bryllupsbingo</textarea>
+		<div class="field">
+			<label class="field-label" for="headerTemplate">Overskriftsmal</label>
+			<p class="field-hint" id="headerHint">Vises øverst på hvert ark. Bruk <code>$n</code> for bordnummer, f.eks. <code>Bord $n</code>.</p>
+			<textarea id="headerTemplate" rows="1" aria-describedby="headerHint">Bryllupsbingo</textarea>
 		</div>
 
-		<!-- 2. Underoverskrift (rett under overskriften) -->
-		<div>
-			<label for="subtitle">Underoverskrift (bruk $n for nummer, f.eks. "Bord $n")</label>
+		<div class="field">
+			<label class="field-label" for="subtitle">Underoverskrift</label>
+			<p class="field-hint">Rett under overskriften. Støtter også <code>$n</code> for nummer.</p>
 			<textarea id="subtitle" rows="1">Bord $n</textarea>
 		</div>
 
-		<!-- 3. Muligheter / rutenett (hovedinnholdet) -->
-		<div>
-			<label for="things">Muligheter (én per linje – fyller rutenettet)</label>
-			<textarea id="things" rows="12" placeholder="Skriv inn ett alternativ per linje her..."></textarea>
+		<div class="field">
+			<label class="field-label" for="things">Muligheter</label>
+			<p class="field-hint">Én per linje – trekkes tilfeldig inn i rutenettet uten duplikater på samme kort.</p>
+			<textarea id="things" rows="12" placeholder="Skriv inn ett alternativ per linje her…"></textarea>
 		</div>
 
-		<!-- 4. Regler og premier (nederst under rutenettet) -->
-		<div>
-			<label for="rules">Regler og premier (vises under rutenettet på hvert bord)</label>
+		<div class="field">
+			<label class="field-label" for="rules">Regler og premier</label>
+			<p class="field-hint">Vises i en boks under rutenettet på hvert ark.</p>
 			<textarea id="rules" rows="4">Bingo teller horisontalt, vertikalt og diagonalt.
 1 rekke = 3. premie – Gullpenger
 2 rekker = 2. premie – Twistpose
 Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 		</div>
 
-		<div>
-			<label id="sizePreview" for="size">Størrelse – 1×1</label>
-			<input type="range" id="size" min="1" max="1" value="1" step="1">
+		<div class="field">
+			<div class="field-meta">
+				<label class="field-label" id="sizeLabel" for="size">Størrelse</label>
+				<p class="field-hint" id="sizePreview">1×1 — legg inn muligheter for å justere</p>
+			</div>
+			<input type="range" id="size" min="1" max="1" value="1" step="1" aria-describedby="sizePreview">
 		</div>
 
-		<div>
-			<label for="count">Antall bingoark (bord)</label>
+		<div class="field">
+			<label class="field-label" for="count">Antall bingoark</label>
+			<p class="field-hint">Ett unikt ark per bord (1–200).</p>
 			<input type="number" id="count" value="12" min="1" max="200">
 		</div>
 
 		<button type="submit">Generer PDF</button>
 	</form>
 
-	<a id="download" href="#" style="display: none;"></a>
+	<aside class="exports-panel" aria-labelledby="exportsHeading">
+		<h2 id="exportsHeading">Eksporter</h2>
+		<p class="exports-intro">Hver generering legges til her, så du kan hente ned tidligere versjoner i denne økten.</p>
+		<p class="exports-empty" id="exportsEmpty">Ingen PDF-er ennå. Generer for å fylle listen.</p>
+		<ul class="exports-list" id="exportsList" hidden></ul>
+	</aside>
+	</div>
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 	<script>
@@ -221,7 +388,10 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 		const sizeEl = document.getElementById('size');
 		const sizePreview = document.getElementById('sizePreview');
 		const countEl = document.getElementById('count');
-		const downloadEl = document.getElementById('download');
+		const exportsEmpty = document.getElementById('exportsEmpty');
+		const exportsList = document.getElementById('exportsList');
+		/** @type {{ id: string, url: string }[]} */
+		const exportEntries = [];
 
 		// PDF titles are canvas → transparent PNG (jsPDF core fonts can't use these faces).
 		// No CSS fallback stack: missing glyphs would otherwise mix Georgia mid-word.
@@ -318,9 +488,10 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			sizeEl.value = current;
 
 			if (numItems === 0) {
-				sizePreview.textContent = "Størrelse – 1×1 (legg inn muligheter for å justere)";
+				sizePreview.textContent = "1×1 — legg inn muligheter for å justere";
 			} else {
-				sizePreview.textContent = `Størrelse – ${current}×${current} (${current * current} ruter, ${numItems} muligheter tilgjengelig)`;
+				sizePreview.textContent =
+					`${current}×${current} · ${current * current} ruter · ${numItems} muligheter`;
 			}
 		}
 
@@ -529,15 +700,114 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				}
 			}
 
-			// Lag nedlastbar PDF
+			// Lagre PDF i eksportlisten (beholder tidligere genereringer)
 			const pdfBlob = doc.output("blob");
-			const url = URL.createObjectURL(pdfBlob);
-
-			downloadEl.href = url;
-			downloadEl.download = `bingo_bord_${new Date().toISOString().slice(0, 10)}.pdf`;
-			downloadEl.style.display = "inline-block";
-			downloadEl.textContent = `Last ned PDF (${count} bord • ${size}×${size})`;
+			pushExport({
+				blob: pdfBlob,
+				headerTemplate,
+				subtitleTemplate,
+				count,
+				size,
+			});
 		}
+
+		function formatExportTitle(headerTemplate, count, size) {
+			const sample = headerTemplate.replace(/\$n/g, "1").trim() || "Bingo";
+			const multi = count > 1 ? `–${count}` : "";
+			return `${sample}${headerTemplate.includes("$n") ? multi : ""} · ${size}×${size}`;
+		}
+
+		function formatTimestamp(date) {
+			try {
+				return new Intl.DateTimeFormat("nb-NO", {
+					dateStyle: "short",
+					timeStyle: "medium",
+				}).format(date);
+			} catch {
+				return date.toLocaleString();
+			}
+		}
+
+		function pushExport({ blob, headerTemplate, subtitleTemplate, count, size }) {
+			const createdAt = new Date();
+			const id = `${createdAt.getTime()}-${Math.random().toString(36).slice(2, 8)}`;
+			const url = URL.createObjectURL(blob);
+			const dateStamp = createdAt.toISOString().slice(0, 10);
+			const timeStamp = createdAt.toISOString().slice(11, 19).replace(/:/g, "");
+			const filename = `bingo_${dateStamp}_${timeStamp}_${size}x${size}_${count}ark.pdf`;
+			const title = formatExportTitle(headerTemplate, count, size);
+			const subtitleSample = subtitleTemplate.replace(/\$n/g, "1").trim();
+
+			exportEntries.unshift({ id, url });
+
+			const li = document.createElement("li");
+			li.className = "export-card is-latest";
+			li.dataset.exportId = id;
+
+			const titleEl = document.createElement("p");
+			titleEl.className = "export-card-title";
+			titleEl.textContent = title;
+
+			const metaEl = document.createElement("p");
+			metaEl.className = "export-card-meta";
+			const timeSpan = document.createElement("span");
+			timeSpan.textContent = formatTimestamp(createdAt);
+			const detailSpan = document.createElement("span");
+			detailSpan.textContent = `${count} ark · ${size}×${size}`;
+			metaEl.append(timeSpan, detailSpan);
+			if (subtitleSample) {
+				const subSpan = document.createElement("span");
+				subSpan.textContent = subtitleSample;
+				metaEl.append(subSpan);
+			}
+
+			const actions = document.createElement("div");
+			actions.className = "export-actions";
+
+			const download = document.createElement("a");
+			download.className = "export-download";
+			download.href = url;
+			download.download = filename;
+			download.textContent = "Last ned PDF";
+
+			const remove = document.createElement("button");
+			remove.type = "button";
+			remove.className = "export-remove";
+			remove.textContent = "Fjern";
+			remove.addEventListener("click", () => removeExport(id));
+
+			actions.append(download, remove);
+			li.append(titleEl, metaEl, actions);
+
+			exportsList.querySelectorAll(".export-card.is-latest").forEach((el) => {
+				el.classList.remove("is-latest");
+			});
+			exportsList.prepend(li);
+			exportsList.hidden = false;
+			exportsEmpty.hidden = true;
+		}
+
+		function removeExport(id) {
+			const idx = exportEntries.findIndex((e) => e.id === id);
+			if (idx === -1) return;
+			URL.revokeObjectURL(exportEntries[idx].url);
+			exportEntries.splice(idx, 1);
+			const card = exportsList.querySelector(`[data-export-id="${id}"]`);
+			if (card) card.remove();
+			if (exportEntries.length === 0) {
+				exportsList.hidden = true;
+				exportsEmpty.hidden = false;
+			} else {
+				const first = exportsList.querySelector(".export-card");
+				if (first) first.classList.add("is-latest");
+			}
+		}
+
+		window.addEventListener("beforeunload", () => {
+			for (const entry of exportEntries) {
+				URL.revokeObjectURL(entry.url);
+			}
+		});
 
 		// Koble til hendelser
 		form.addEventListener("input", negotiate);
