@@ -86,13 +86,13 @@
 		<!-- 1. Overskrift (toppen av hver side) -->
 		<div>
 			<label for="headerTemplate">Overskriftsmal (bruk $n for nummer, f.eks. "Bord $n")</label>
-			<textarea id="headerTemplate" rows="1">Bord $n</textarea>
+			<textarea id="headerTemplate" rows="1">Bryllupsbingo</textarea>
 		</div>
 
 		<!-- 2. Underoverskrift (rett under overskriften) -->
 		<div>
-			<label for="subtitle">Underoverskrift (vises under overskriften)</label>
-			<textarea id="subtitle" rows="2">Line og Elias sin magiske bryllupsbingo</textarea>
+			<label for="subtitle">Underoverskrift (bruk $n for nummer, f.eks. "Bord $n")</label>
+			<textarea id="subtitle" rows="1">Bord $n</textarea>
 		</div>
 
 		<!-- 3. Muligheter / rutenett (hovedinnholdet) -->
@@ -137,8 +137,13 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 		const countEl = document.getElementById('count');
 		const downloadEl = document.getElementById('download');
 
+		// Decorative PDF heading font (canvas → image). Must be a *complete*
+		// face: per-glyph fallback looks like mixed font families in the title.
+		// Previous Beautifully Delicious file was a MyFonts webfont-kit subset
+		// (~58 glyphs: no B/E/L/…, missing 2/7/9, no æøå), so "Bord 1" drew
+		// "B" in Georgia and "ord 1" in script.
 		const PDF_HEADING_FONT = "BingoPdfHeading";
-		const HEADING_FONT_URL = "resources/fonts/Beautifully_Delicious_Script_Regular.ttf";
+		const HEADING_FONT_URL = "resources/fonts/GreatVibes-Regular.ttf";
 		let headingFontReady = null;
 
 		function ensureHeadingFont() {
@@ -147,6 +152,11 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 					const face = new FontFace(PDF_HEADING_FONT, `url(${HEADING_FONT_URL})`);
 					await face.load();
 					document.fonts.add(face);
+					// Wait until the family is actually usable for canvas measure/draw.
+					await document.fonts.load(`64px "${PDF_HEADING_FONT}"`);
+					if (!document.fonts.check(`64px "${PDF_HEADING_FONT}"`)) {
+						throw new Error("Heading font loaded but not available for canvas");
+					}
 				})();
 			}
 			return headingFontReady;
@@ -161,12 +171,13 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			const scale = 3;
 			const canvas = document.createElement("canvas");
 			const ctx = canvas.getContext("2d");
-			const fontSpec = `${fontSizePx}px "${PDF_HEADING_FONT}", Georgia, serif`;
+			// No fallback stack: missing glyphs must not silently become Georgia.
+			const fontSpec = `${fontSizePx}px "${PDF_HEADING_FONT}"`;
 
 			ctx.font = fontSpec;
 			const metrics = ctx.measureText(text);
 			const widthPx = Math.ceil(metrics.width + paddingX * 2);
-			const heightPx = Math.ceil(fontSizePx + paddingY * 2);
+			const heightPx = Math.ceil(fontSizePx * 1.35 + paddingY * 2);
 
 			canvas.width = widthPx * scale;
 			canvas.height = heightPx * scale;
@@ -244,8 +255,8 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			const count = parseInt(countEl.value, 10) || 1;
 			const cellsPerCard = size * size;
 			const rulesText = rulesEl.value.trim();
-			const subtitleText = subtitleEl.value.trim() || "Line og Elias sin magiske bryllupsbingo";
-			const headerTemplate = headerTemplateEl.value.trim() || "Bord $n";
+			const subtitleTemplate = subtitleEl.value.trim() || "Bord $n";
+			const headerTemplate = headerTemplateEl.value.trim() || "Bryllupsbingo";
 
 			if (cellsPerCard > items.length) {
 				alert(`For få muligheter. Du trenger minst ${cellsPerCard} for et ${size}×${size}-rutenett.`);
@@ -273,7 +284,7 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				if (c > 0) doc.addPage();
 
 				// Overskrift med mal (erstatt $n med nummer)
-				const headerText = headerTemplate.replace(/\$n/g, (c + 1));
+				const headerText = headerTemplate.replace(/\$n/g, String(c + 1));
 				let headingImage = headingCache.get(headerText);
 				if (!headingImage) {
 					try {
@@ -286,7 +297,8 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				}
 				const headingBottom = drawHeading(doc, headingImage, pageWidth, margin);
 
-				// Underoverskrift fra textarea
+				// Underoverskrift fra textarea (samme $n-mal)
+				const subtitleText = subtitleTemplate.replace(/\$n/g, String(c + 1));
 				doc.setFont("helvetica", "normal");
 				doc.setFontSize(10);
 				doc.setTextColor(0, 0, 0);

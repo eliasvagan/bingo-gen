@@ -20,4 +20,11 @@ Then open `http://localhost:8000`.
 .
 ├── index.html
 └── resources/fonts/   # Decorative heading font for PDF output only
+    ├── GreatVibes-Regular.ttf   # SIL OFL script face (full Latin + digits + æøå)
+    └── OFL-GreatVibes.txt
 ```
+
+PDF board titles are rasterized with the canvas API using that font. The face
+must cover every character you put in the heading template — browsers fall
+back *per glyph*, which looks like a mixed font family (e.g. one letter in
+Georgia, the rest in script).
