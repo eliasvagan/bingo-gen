@@ -137,53 +137,55 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 		const countEl = document.getElementById('count');
 		const downloadEl = document.getElementById('download');
 
-		// Decorative PDF heading font (canvas → image). Must be a *complete*
-		// face: per-glyph fallback looks like mixed font families in the title.
-		// Previous Beautifully Delicious file was a MyFonts webfont-kit subset
-		// (~58 glyphs: no B/E/L/…, missing 2/7/9, no æøå), so "Bord 1" drew
-		// "B" in Georgia and "ord 1" in script.
+		// PDF titles are canvas → transparent PNG (jsPDF core fonts can't use these faces).
+		// No CSS fallback stack: missing glyphs would otherwise mix Georgia mid-word.
 		const PDF_HEADING_FONT = "BingoPdfHeading";
-		const HEADING_FONT_URL = "resources/fonts/GreatVibes-Regular.ttf";
-		let headingFontReady = null;
+		const PDF_SUBTITLE_FONT = "BingoPdfSubtitle";
+		const HEADING_FONT_URL = "resources/fonts/Eyesome-Script.otf";
+		const SUBTITLE_FONT_URL = "resources/fonts/CormorantGaramond-Regular.ttf";
+		const fontReady = new Map();
 
-		function ensureHeadingFont() {
-			if (!headingFontReady) {
-				headingFontReady = (async () => {
-					const face = new FontFace(PDF_HEADING_FONT, `url(${HEADING_FONT_URL})`);
+		function ensureFont(family, url) {
+			if (!fontReady.has(family)) {
+				fontReady.set(family, (async () => {
+					const face = new FontFace(family, `url(${url})`);
 					await face.load();
 					document.fonts.add(face);
-					// Wait until the family is actually usable for canvas measure/draw.
-					await document.fonts.load(`64px "${PDF_HEADING_FONT}"`);
-					if (!document.fonts.check(`64px "${PDF_HEADING_FONT}"`)) {
-						throw new Error("Heading font loaded but not available for canvas");
+					await document.fonts.load(`64px "${family}"`);
+					if (!document.fonts.check(`64px "${family}"`)) {
+						throw new Error(`Font not available for canvas: ${family}`);
 					}
-				})();
+				})());
 			}
-			return headingFontReady;
+			return fontReady.get(family);
 		}
 
-		async function renderHeadingImage(text) {
-			await ensureHeadingFont();
+		async function renderTextImage(text, {
+			family,
+			url,
+			fontSizePx = 64,
+			paddingX = 28,
+			paddingY = 18,
+			lineHeight = 1.35,
+		}) {
+			await ensureFont(family, url);
 
-			const fontSizePx = 64;
-			const paddingX = 28;
-			const paddingY = 18;
 			const scale = 3;
 			const canvas = document.createElement("canvas");
 			const ctx = canvas.getContext("2d");
-			// No fallback stack: missing glyphs must not silently become Georgia.
-			const fontSpec = `${fontSizePx}px "${PDF_HEADING_FONT}"`;
+			const fontSpec = `${fontSizePx}px "${family}"`;
 
 			ctx.font = fontSpec;
 			const metrics = ctx.measureText(text);
 			const widthPx = Math.ceil(metrics.width + paddingX * 2);
-			const heightPx = Math.ceil(fontSizePx * 1.35 + paddingY * 2);
+			const heightPx = Math.ceil(fontSizePx * lineHeight + paddingY * 2);
 
 			canvas.width = widthPx * scale;
 			canvas.height = heightPx * scale;
+			// Transparent PNG: JPEG-on-white left a faint grey plate on the page.
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.scale(scale, scale);
-			ctx.fillStyle = "#ffffff";
-			ctx.fillRect(0, 0, widthPx, heightPx);
 			ctx.font = fontSpec;
 			ctx.fillStyle = "#000000";
 			ctx.textAlign = "center";
@@ -191,19 +193,17 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			ctx.fillText(text, widthPx / 2, heightPx / 2);
 
 			return {
-				dataUrl: canvas.toDataURL("image/jpeg", 0.92),
+				dataUrl: canvas.toDataURL("image/png"),
 				widthPx,
 				heightPx,
 			};
 		}
 
-		function drawHeading(doc, headingImage, pageWidth, margin) {
-			const maxWidth = pageWidth - margin * 2;
-			const widthMm = Math.min(maxWidth, headingImage.widthPx * 0.35);
-			const heightMm = widthMm * (headingImage.heightPx / headingImage.widthPx);
+		function drawCenteredImage(doc, image, pageWidth, y, maxWidthMm, pxToMm = 0.35) {
+			const widthMm = Math.min(maxWidthMm, image.widthPx * pxToMm);
+			const heightMm = widthMm * (image.heightPx / image.widthPx);
 			const x = (pageWidth - widthMm) / 2;
-			const y = margin - 2;
-			doc.addImage(headingImage.dataUrl, "JPEG", x, y, widthMm, heightMm);
+			doc.addImage(image.dataUrl, "PNG", x, y, widthMm, heightMm);
 			return y + heightMm;
 		}
 
@@ -278,31 +278,63 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			const pageWidth = doc.internal.pageSize.getWidth();
 			const pageHeight = doc.internal.pageSize.getHeight();
 			const margin = 14;
-			const headingCache = new Map();
+			const contentWidth = pageWidth - margin * 2;
+			const textImageCache = new Map();
+
+			async function cachedTextImage(key, factory) {
+				if (!textImageCache.has(key)) {
+					textImageCache.set(key, await factory());
+				}
+				return textImageCache.get(key);
+			}
 
 			for (let c = 0; c < count; c++) {
 				if (c > 0) doc.addPage();
 
-				// Overskrift med mal (erstatt $n med nummer)
+				// Overskrift med mal (erstatt $n med nummer) — Eyesome Script
 				const headerText = headerTemplate.replace(/\$n/g, String(c + 1));
-				let headingImage = headingCache.get(headerText);
-				if (!headingImage) {
-					try {
-						headingImage = await renderHeadingImage(headerText);
-						headingCache.set(headerText, headingImage);
-					} catch (error) {
-						alert("Kunne ikke tegne overskriften. Sjekk at fontfilen finnes og prøv på nytt.");
-						return;
-					}
+				let headingImage;
+				try {
+					headingImage = await cachedTextImage(`h:${headerText}`, () =>
+						renderTextImage(headerText, {
+							family: PDF_HEADING_FONT,
+							url: HEADING_FONT_URL,
+							fontSizePx: 72,
+							paddingX: 32,
+							paddingY: 20,
+							lineHeight: 1.4,
+						})
+					);
+				} catch (error) {
+					alert("Kunne ikke tegne overskriften. Sjekk at fontfilen finnes og prøv på nytt.");
+					return;
 				}
-				const headingBottom = drawHeading(doc, headingImage, pageWidth, margin);
+				const headingBottom = drawCenteredImage(
+					doc, headingImage, pageWidth, margin - 2, contentWidth, 0.32
+				);
 
-				// Underoverskrift fra textarea (samme $n-mal)
+				// Underoverskrift (samme $n-mal) — Cormorant Garamond serif
 				const subtitleText = subtitleTemplate.replace(/\$n/g, String(c + 1));
-				doc.setFont("helvetica", "normal");
-				doc.setFontSize(10);
-				doc.setTextColor(0, 0, 0);
-				doc.text(subtitleText, pageWidth / 2, headingBottom + 4, { align: "center" });
+				let subtitleImage;
+				try {
+					subtitleImage = await cachedTextImage(`s:${subtitleText}`, () =>
+						renderTextImage(subtitleText, {
+							family: PDF_SUBTITLE_FONT,
+							url: SUBTITLE_FONT_URL,
+							fontSizePx: 36,
+							paddingX: 20,
+							paddingY: 10,
+							lineHeight: 1.25,
+						})
+					);
+				} catch (error) {
+					alert("Kunne ikke tegne underoverskriften. Sjekk at fontfilen finnes og prøv på nytt.");
+					return;
+				}
+				const subtitleTop = headingBottom + 1;
+				const subtitleBottom = drawCenteredImage(
+					doc, subtitleImage, pageWidth, subtitleTop, contentWidth * 0.7, 0.28
+				);
 
 				// Velg tilfeldige, unike alternativer til dette kortet
 				const shuffled = [...items].sort(() => Math.random() - 0.5);
@@ -315,7 +347,7 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				}
 
 				// Beregn plassering og størrelse på rutenettet (kvadratiske celler)
-				const gridTop = headingBottom + 12;
+				const gridTop = subtitleBottom + 8;
 				const availableWidth = pageWidth - margin * 2;
 				const rulesAreaHeight = 35;
 				const maxGridHeight = pageHeight - gridTop - margin - rulesAreaHeight;
