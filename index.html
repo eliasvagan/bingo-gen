@@ -242,7 +242,7 @@
 		.export-card {
 			display: flex;
 			flex-direction: column;
-			gap: .65rem;
+			gap: .55rem;
 			padding: .85rem .9rem;
 			border: 1px solid var(--border);
 			border-radius: 6px;
@@ -252,6 +252,12 @@
 			border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 			box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
 		}
+		.export-card-head {
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			gap: .5rem .75rem;
+		}
 		.export-card-title {
 			margin: 0;
 			font-size: .98rem;
@@ -259,6 +265,9 @@
 			color: var(--fg);
 			line-height: 1.3;
 			word-break: break-word;
+			flex: 1 1 auto;
+			min-width: 0;
+			padding-right: .25rem;
 		}
 		.export-card-meta {
 			margin: 0;
@@ -275,6 +284,7 @@
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
+			align-self: stretch;
 			padding: .55rem .9rem;
 			background: var(--surface-2);
 			color: var(--orange);
@@ -295,25 +305,22 @@
 			outline-offset: 2px;
 		}
 		.export-remove {
-			align-self: flex-start;
-			padding: 0;
+			flex: 0 0 auto;
+			margin: -.15rem -.2rem 0 0;
+			padding: .15rem .35rem;
 			border: none;
 			background: none;
 			color: var(--muted);
 			font: inherit;
-			font-size: .78rem;
+			font-size: .75rem;
+			line-height: 1.2;
 			cursor: pointer;
 			text-decoration: underline;
 			text-underline-offset: 2px;
+			white-space: nowrap;
 		}
 		.export-remove:hover {
 			color: var(--fg);
-		}
-		.export-actions {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: .5rem .75rem;
 		}
 	</style>
 </head>
@@ -607,9 +614,10 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				const gridTop = subtitleBottom + 8;
 				const availableWidth = pageWidth - margin * 2;
 				// Reserve space for the rules box (top margin + padding + text).
-				const rulesAreaHeight = 55;
+				const rulesAreaHeight = 52;
 				const maxGridHeight = pageHeight - gridTop - margin - rulesAreaHeight;
-				const maxCellSize = 26;
+				// ~25% larger than the old 26mm cap so cell copy wraps less tightly.
+				const maxCellSize = 32.5;
 				const cellSize = Math.min(
 					availableWidth / size,
 					maxGridHeight / size,
@@ -618,10 +626,10 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				const gridWidth = cellSize * size;
 				const gridLeft = margin + (availableWidth - gridWidth) / 2;
 
-				// Fontstørrelse tilpasset rutenett
-				let fontSize = 9.5;
-				if (size >= 5) fontSize = 7.5;
-				if (size >= 7) fontSize = 6;
+				// Fontstørrelse tilpasset rutenett (scaled with larger cells)
+				let fontSize = 11;
+				if (size >= 5) fontSize = 8.5;
+				if (size >= 7) fontSize = 7;
 				doc.setFontSize(fontSize);
 
 				for (let row = 0; row < size; row++) {
@@ -702,10 +710,10 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 
 			// Lagre PDF i eksportlisten (beholder tidligere genereringer)
 			const pdfBlob = doc.output("blob");
+			// Newest export is prepended so the list stays latest-first.
 			pushExport({
 				blob: pdfBlob,
 				headerTemplate,
-				subtitleTemplate,
 				count,
 				size,
 			});
@@ -728,7 +736,7 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			}
 		}
 
-		function pushExport({ blob, headerTemplate, subtitleTemplate, count, size }) {
+		function pushExport({ blob, headerTemplate, count, size }) {
 			const createdAt = new Date();
 			const id = `${createdAt.getTime()}-${Math.random().toString(36).slice(2, 8)}`;
 			const url = URL.createObjectURL(blob);
@@ -736,17 +744,29 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			const timeStamp = createdAt.toISOString().slice(11, 19).replace(/:/g, "");
 			const filename = `bingo_${dateStamp}_${timeStamp}_${size}x${size}_${count}ark.pdf`;
 			const title = formatExportTitle(headerTemplate, count, size);
-			const subtitleSample = subtitleTemplate.replace(/\$n/g, "1").trim();
 
-			exportEntries.unshift({ id, url });
+			// Keep array order aligned with DOM (latest at index 0 / top of list).
+			exportEntries.unshift({ id, url, createdAt: createdAt.getTime() });
 
 			const li = document.createElement("li");
 			li.className = "export-card is-latest";
 			li.dataset.exportId = id;
 
+			const head = document.createElement("div");
+			head.className = "export-card-head";
+
 			const titleEl = document.createElement("p");
 			titleEl.className = "export-card-title";
 			titleEl.textContent = title;
+
+			const remove = document.createElement("button");
+			remove.type = "button";
+			remove.className = "export-remove";
+			remove.textContent = "Fjern";
+			remove.setAttribute("aria-label", `Fjern eksport ${title}`);
+			remove.addEventListener("click", () => removeExport(id));
+
+			head.append(titleEl, remove);
 
 			const metaEl = document.createElement("p");
 			metaEl.className = "export-card-meta";
@@ -755,14 +775,6 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			const detailSpan = document.createElement("span");
 			detailSpan.textContent = `${count} ark · ${size}×${size}`;
 			metaEl.append(timeSpan, detailSpan);
-			if (subtitleSample) {
-				const subSpan = document.createElement("span");
-				subSpan.textContent = subtitleSample;
-				metaEl.append(subSpan);
-			}
-
-			const actions = document.createElement("div");
-			actions.className = "export-actions";
 
 			const download = document.createElement("a");
 			download.className = "export-download";
@@ -770,18 +782,12 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 			download.download = filename;
 			download.textContent = "Last ned PDF";
 
-			const remove = document.createElement("button");
-			remove.type = "button";
-			remove.className = "export-remove";
-			remove.textContent = "Fjern";
-			remove.addEventListener("click", () => removeExport(id));
-
-			actions.append(download, remove);
-			li.append(titleEl, metaEl, actions);
+			li.append(head, metaEl, download);
 
 			exportsList.querySelectorAll(".export-card.is-latest").forEach((el) => {
 				el.classList.remove("is-latest");
 			});
+			// Insert at top so consecutive exports stay newest-first.
 			exportsList.prepend(li);
 			exportsList.hidden = false;
 			exportsEmpty.hidden = true;
