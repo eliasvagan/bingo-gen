@@ -626,11 +626,37 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 				const gridWidth = cellSize * size;
 				const gridLeft = margin + (availableWidth - gridWidth) / 2;
 
-				// Fontstørrelse tilpasset rutenett (scaled with larger cells)
-				let fontSize = 11;
-				if (size >= 5) fontSize = 8.5;
-				if (size >= 7) fontSize = 7;
-				doc.setFontSize(fontSize);
+				// Per-cell font: start large and shrink until the wrapped text fits.
+				const cellPad = 2.6;
+				const textMaxW = cellSize - cellPad * 2;
+				const textMaxH = cellSize - cellPad * 2;
+				let maxCellFont = 13;
+				if (size >= 5) maxCellFont = 11;
+				if (size >= 7) maxCellFont = 9;
+				const minCellFont = 5.5;
+
+				function fitCellText(text) {
+					doc.setFont("helvetica", "normal");
+					const raw = String(text || "");
+					for (let fontSize = maxCellFont; fontSize >= minCellFont - 0.01; fontSize -= 0.5) {
+						doc.setFontSize(fontSize);
+						const lines = doc.splitTextToSize(raw, textMaxW);
+						const lineH = fontSize * 0.38;
+						const textHeight = lines.length * lineH;
+						if (textHeight <= textMaxH) {
+							return { fontSize, lines, textHeight, lineH };
+						}
+					}
+					doc.setFontSize(minCellFont);
+					const lines = doc.splitTextToSize(raw, textMaxW);
+					const lineH = minCellFont * 0.38;
+					return {
+						fontSize: minCellFont,
+						lines,
+						textHeight: lines.length * lineH,
+						lineH,
+					};
+				}
 
 				for (let row = 0; row < size; row++) {
 					for (let col = 0; col < size; col++) {
@@ -641,18 +667,16 @@ Fullt brett = 1. premie – valgfri drink til alle på bordet</textarea>
 						doc.setDrawColor(80);
 						doc.rect(x, y, cellSize, cellSize);
 
-						// Tekst, sentrert og automatisk linjebryt
-						const cellText = grid[row][col];
-						const lines = doc.splitTextToSize(cellText, cellSize - 5);
-
-						const textHeight = lines.length * (fontSize * 0.38);
-						const textY = y + (cellSize - textHeight) / 2 + fontSize * 0.32;
+						const fitted = fitCellText(grid[row][col]);
+						const textY =
+							y + (cellSize - fitted.textHeight) / 2 + fitted.fontSize * 0.32;
 
 						doc.setFont("helvetica", "normal");
+						doc.setFontSize(fitted.fontSize);
 						doc.setTextColor(30, 30, 30);
-						doc.text(lines, x + cellSize / 2, textY, {
+						doc.text(fitted.lines, x + cellSize / 2, textY, {
 							align: "center",
-							maxWidth: cellSize - 5
+							maxWidth: textMaxW,
 						});
 					}
 				}
