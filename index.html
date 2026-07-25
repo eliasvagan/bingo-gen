@@ -5,82 +5,168 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Elias sin magiske bingogenerator</title>
 	<style>
+		/* Light by default; Monokai when OS prefers dark. PDF output unchanged. */
+		:root {
+			color-scheme: light;
+			--bg: #ffffff;
+			--surface: #fafafa;
+			--surface-2: #f0f0f0;
+			--border: #d2d2f2;
+			--fg: #222222;
+			--muted: #555555;
+			--accent: #222222;
+			--accent-2: #222222;
+			--orange: #222222;
+			--input-bg: #ffffff;
+			--focus: #6666aa;
+			--btn-bg: #222222;
+			--btn-fg: #ffffff;
+			--form-shadow: none;
+			--field-hover-border: #9999cc;
+			--focus-ring: color-mix(in srgb, #6666aa 28%, transparent);
+		}
+		@media (prefers-color-scheme: dark) {
+			:root {
+				color-scheme: dark;
+				--bg: #272822;
+				--surface: #3e3d32;
+				--surface-2: #34352f;
+				--border: #49483e;
+				--fg: #f8f8f2;
+				--muted: #75715e;
+				--accent: #a6e22e;
+				--accent-2: #66d9ef;
+				--orange: #fd971f;
+				--input-bg: #1e1f1c;
+				--focus: #66d9ef;
+				--btn-bg: #a6e22e;
+				--btn-fg: #1e1f1c;
+				--form-shadow: 0 8px 28px rgba(0, 0, 0, .28);
+				--field-hover-border: color-mix(in srgb, #66d9ef 45%, #49483e);
+				--focus-ring: color-mix(in srgb, #66d9ef 28%, transparent);
+			}
+		}
+		* { box-sizing: border-box; }
 		body {
 			font-family: Georgia, "Times New Roman", serif;
 			max-width: 52rem;
 			margin: 2rem auto;
-			padding: 0 1rem;
+			padding: 0 1rem 3rem;
 			line-height: 1.5;
-			color: #222;
+			color: var(--fg);
+			background: var(--bg);
 		}
 		h1 {
 			font-weight: 700;
 			letter-spacing: -.02em;
+			color: var(--accent);
+			margin-bottom: .5rem;
+		}
+		.lead {
+			max-width: 42rem;
+			color: var(--muted);
+			margin-top: 0;
+			margin-bottom: 1.75rem;
 		}
 		form {
 			display: flex;
 			flex-direction: column;
 			gap: 1.25rem;
 			padding: 2rem;
-			border: 2px solid #d2d2f2;
-			background: #fafafa;
-			border-radius: 4px;
+			border: 1px solid var(--border);
+			background: var(--surface);
+			border-radius: 8px;
+			box-shadow: var(--form-shadow);
 		}
 		label {
 			font-weight: 600;
 			margin-bottom: -.25rem;
+			color: var(--accent-2);
 		}
-		textarea {
+		textarea,
+		input[type="number"] {
 			width: 100%;
 			padding: .75rem;
-			border: 1px solid #ccc;
-			border-radius: 4px;
-			font-family: inherit;
-			font-size: 1rem;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+			font-size: .95rem;
+			color: var(--fg);
+			background: var(--input-bg);
 			resize: vertical;
-			box-sizing: border-box;
-		}
-		input[type="range"] {
-			width: 100%;
+			transition: border-color .15s, box-shadow .15s;
 		}
 		input[type="number"] {
 			width: 8rem;
-			padding: .5rem;
-			border: 1px solid #ccc;
-			border-radius: 4px;
+			padding: .5rem .65rem;
+			resize: none;
+		}
+		textarea::placeholder {
+			color: var(--muted);
+		}
+		textarea:hover,
+		input[type="number"]:hover {
+			border-color: var(--field-hover-border);
+		}
+		textarea:focus,
+		input[type="number"]:focus {
+			outline: none;
+			border-color: var(--focus);
+			box-shadow: 0 0 0 3px var(--focus-ring);
+		}
+		input[type="range"] {
+			width: 100%;
+			accent-color: var(--accent);
 		}
 		button {
 			padding: .75rem 1.5rem;
 			font-size: 1.05rem;
 			font-weight: 600;
-			background: #222;
-			color: white;
+			font-family: inherit;
+			background: var(--btn-bg);
+			color: var(--btn-fg);
 			border: none;
-			border-radius: 4px;
+			border-radius: 6px;
 			cursor: pointer;
+			transition: filter .15s, transform .05s;
 		}
 		button:hover {
-			background: #000;
+			filter: brightness(1.08);
+		}
+		button:active {
+			transform: translateY(1px);
+		}
+		button:focus-visible {
+			outline: 2px solid var(--focus);
+			outline-offset: 2px;
 		}
 		#download {
 			display: inline-block;
 			margin-top: 1rem;
-			padding: .6rem 1.2rem;
-			background: #f0f0f0;
-			color: #222;
+			padding: .65rem 1.25rem;
+			background: var(--surface-2);
+			color: var(--orange);
 			text-decoration: none;
-			border-radius: 4px;
+			border: 1px solid var(--border);
+			border-radius: 6px;
 			font-weight: 600;
+			transition: border-color .15s, background .15s, color .15s;
 		}
 		#download:hover {
-			background: #e0e0e0;
+			background: var(--surface);
+			border-color: var(--orange);
+			color: var(--fg);
+		}
+		#download:focus-visible {
+			outline: 2px solid var(--focus);
+			outline-offset: 2px;
 		}
 	</style>
 </head>
 <body>
 
 	<h1>Elias sin magiske bingogenerator</h1>
-	<p style="max-width: 42rem; color: #555;">Fyll inn én mulighet per linje. Velg rutenettstørrelse og antall bord. Alt blir tilfeldig og unikt per ark – uten duplikater på samme kort.</p>
+	<p class="lead">Fyll inn én mulighet per linje. Velg rutenettstørrelse og antall bord. Alt blir tilfeldig og unikt per ark – uten duplikater på samme kort.</p>
 
 	<form id="form">
 		<!-- 1. Overskrift (toppen av hver side) -->
