@@ -2,7 +2,7 @@
 
 Browser-based wedding bingo sheet generator. Creates randomized, unique cards and downloads them as PDFs.
 
-**Live:** [eliasvagan.github.io/projects/bingo-gen/](https://eliasvagan.github.io/projects/bingo-gen/)
+**Live:** [eliasv.com/projects/bingo-gen/](https://eliasv.com/projects/bingo-gen/) (deployed from `master` by the eliasv.com orchestrator, see [eliasvagan/eliasv_com](https://github.com/eliasvagan/eliasv_com))
 
 ## Development
 
