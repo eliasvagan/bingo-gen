@@ -1,0 +1,7 @@
+{
+  "name": "bingo-gen",
+  "displayName": "Bingo generator",
+  "version": "1.0.0",
+  "description": "Create randomized wedding bingo sheets and download them as PDFs.",
+  "private": true
+}
